@@ -7,3 +7,11 @@
 
 # Local History for Visual Studio Code
 .history/
+
+dist*/
+runs*/
+data*/
+__pycache__/
+
+temp*.py
+run*.bat
