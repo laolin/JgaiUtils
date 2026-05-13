@@ -6,3 +6,4 @@ from .printWithTime import printWithTime
 from .CalTime import CalTime
 from .generate_unique_id import generate_unique_id, generate_machine_id
 from .rint_by_seeds import rint_by_seeds
+from .str_by_ints import str_by_ints
