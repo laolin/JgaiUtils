@@ -7,3 +7,4 @@ from .CalTime import CalTime
 from .generate_unique_id import generate_unique_id, generate_machine_id
 from .rint_by_seeds import rint_by_seeds
 from .str_by_ints import str_by_ints
+from .get_toml_with_args import get_toml_with_args
