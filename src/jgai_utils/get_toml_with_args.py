@@ -37,7 +37,7 @@ def get_toml_with_args(info:str="",bar="-",width=60):
         dict:返回的配置值
     """
     if len(info)>0:
-        print(f"[+]{f' info ':{bar}^{width}}[+]")
+        print(f"[+]{f' {info} ':{bar}^{width}}[+]")
 
     # ==========================================
     # 阶段 1：临时解析器，仅用于抓取 --config
