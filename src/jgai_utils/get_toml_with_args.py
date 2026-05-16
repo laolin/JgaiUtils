@@ -4,8 +4,9 @@ import sys
 import argparse
 
 # 兼容 Python 3.11+ 的内置库，以及旧版本的 tomli
+
 try:
-    import tomllib as toml
+    import tomllib as toml # type: ignore  # 忽略这一行的导入检查
 except ImportError:
     try:
         import tomli as toml
