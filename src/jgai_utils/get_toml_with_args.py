@@ -26,7 +26,7 @@ def str2bool(v):
         return False
     raise argparse.ArgumentTypeError('期待传入布尔值 (True/False, 1/0)')
 
-def get_toml_with_args(info:str="",bar="-",width=60):
+def get_toml_with_args(info:str="",toml_file:str="config",bar="-",width=60):
     """(1) 读 config.toml配置文件。
     (2) 对于配置中简单类型的配置值，会自动生成对应命令行参数，通过命令行参数 --key VAL 在运行时修改配置。 函数返回命令行更新后的配置。
     (3) 默认配置文件名为 和 .py 同目录下config.toml。 可以通过 --config test 指定别的toml配置文件。
@@ -44,7 +44,7 @@ def get_toml_with_args(info:str="",bar="-",width=60):
     # 阶段 1：临时解析器，仅用于抓取 --config
     # ==========================================
     init_parser = argparse.ArgumentParser(add_help=False)
-    init_parser.add_argument("--config", type=str, default="config", help="指定 TOML 配置文件名 (可省略 .toml)")
+    init_parser.add_argument("--config", type=str, default=toml_file, help="指定 TOML 配置文件名 (可省略 .toml)")
     
     init_args, remaining_argv = init_parser.parse_known_args()
 
