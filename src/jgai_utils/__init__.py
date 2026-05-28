@@ -10,3 +10,4 @@ from .get_toml_with_args import get_toml_with_args
 from .printWithTime import printWithTime
 from .rint_by_seeds import rint_by_seeds
 from .str_by_ints import str_by_ints
+from .truncnorm import truncnorm
