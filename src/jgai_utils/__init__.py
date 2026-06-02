@@ -11,3 +11,4 @@ from .printWithTime import printWithTime
 from .rint_by_seeds import rint_by_seeds
 from .str_by_ints import str_by_ints
 from .truncnorm import truncnorm
+from .ConsoleApplication import ConsoleApplication, _C as AnsiColor
