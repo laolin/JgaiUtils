@@ -118,14 +118,14 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60):
     # ==========================================
     # 此时，如果用户在终端显式指定了参数（如 --n_xspan 10），它会覆盖 TOML 里的默认值
     args = parser.parse_args()
-
-    cfg.update(vars(args))
+    cfg2=vars(args)
+    cfg2.update(cfg)
 
     # 移除不需要传入核心运算逻辑的 config 字段
-    if 'config' in cfg:
-        del cfg['config']
+    if 'config' in cfg2:
+        del cfg2['config']
 
-    return cfg
+    return cfg2
 
 if __name__ =="__main__":
     cfg=get_toml_with_args(' Toml Config Test ')
