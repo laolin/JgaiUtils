@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+from collections.abc import Sequence
 
 # 兼容 Python 3.11+ 的内置库，以及旧版本的 tomli
 
@@ -26,8 +27,24 @@ def str2bool(v):
         return False
     raise argparse.ArgumentTypeError('期待传入布尔值 (True/False, 1/0)')
 
-def get_toml_with_args(info:str="",toml_file:str="config",bar="-",width=60):
-    """(1) 读 config.toml配置文件。
+def _normalize_toml_files(toml_file):
+    if isinstance(toml_file, (str, bytes, os.PathLike)):
+        return [os.fspath(toml_file)]
+    if isinstance(toml_file, Sequence):
+        return [os.fspath(item) for item in toml_file]
+    return [os.fspath(toml_file)]
+
+def _merge_dict(base, extra):
+    for key, value in extra.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            _merge_dict(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60):
+    """toml_file支持指定一个或多个toml文件，多个文件会合并到一个字典中。
+    (1) 读 config.toml配置文件。
     (2) 对于配置中简单类型的配置值，会自动生成对应命令行参数，通过命令行参数 --key VAL 在运行时修改配置。 函数返回命令行更新后的配置。
     (3) 默认配置文件名为 和 .py 同目录下config.toml。 可以通过 --config test 指定别的toml配置文件。
 
@@ -44,42 +61,43 @@ def get_toml_with_args(info:str="",toml_file:str="config",bar="-",width=60):
     # 阶段 1：临时解析器，仅用于抓取 --config
     # ==========================================
     init_parser = argparse.ArgumentParser(add_help=False)
-    init_parser.add_argument("--config", type=str, default=toml_file, help="指定 TOML 配置文件名 (可省略 .toml)")
+    init_parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定 TOML 配置文件名 (可省略 .toml)")
     
     init_args, remaining_argv = init_parser.parse_known_args()
 
     # ==========================================
     # 阶段 2：定位并读取 TOML 配置文件
     # ==========================================
-    config_filename = init_args.config
-    
-    # 自动补全 .toml 扩展名
-    if not config_filename.endswith('.toml'):
-        config_filename += '.toml'
+    config_filenames = _normalize_toml_files(init_args.config)
 
     main_script_path = os.path.abspath(sys.argv[0])
     main_dir = os.path.dirname(main_script_path)    
-    config_path = os.path.join(main_dir, config_filename)
-
-    if not os.path.exists(config_path):
-        print(f"[!] ERROR! FILE NOT FOUND: {config_filename}")
-        sys.exit(1)
     config_dict = {}
-    try:
-        # TOML 解析器要求必须用二进制 'rb' 模式读取
-        with open(config_path, "rb") as f:
-            config_dict = toml.load(f)
-        printWithTime(f"Cofing [ {config_filename} ] Loaded.")
-    except Exception as e:
-        print(f"[!] Read of parse TOML ERROR: {e}")
-        sys.exit(1)
+    for config_filename in config_filenames:
+        # 自动补全 .toml 扩展名
+        if not config_filename.endswith('.toml'):
+            config_filename += '.toml'
+
+        config_path = os.path.join(main_dir, config_filename)
+
+        if not os.path.exists(config_path):
+            print(f"[!] ERROR! FILE NOT FOUND: {config_filename}")
+            sys.exit(1)
+        try:
+            # TOML 解析器要求必须用二进制 'rb' 模式读取
+            with open(config_path, "rb") as f:
+                _merge_dict(config_dict, toml.load(f))
+            printWithTime(f"Cofing [ {config_filename} ] Loaded.")
+        except Exception as e:
+            print(f"[!] Read of parse TOML ERROR: {e}")
+            sys.exit(1)
 
     # ==========================================
     # 阶段 3：创建正式解析器，并动态生成参数
     # ==========================================
     parser = argparse.ArgumentParser(description="JieGouAi Model")
     # 把 config 加回来，以便 -h 帮助文档中能正常显示
-    parser.add_argument("--config", type=str, default="config", help="指定 TOML 配置文件名 (可省略 .toml)")
+    parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定 TOML 配置文件名 (可省略 .toml)")
 
     cfg = {}  # 用于专门存放列表和字典
     for key, value in config_dict.items():
