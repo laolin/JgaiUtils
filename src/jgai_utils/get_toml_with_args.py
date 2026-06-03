@@ -11,9 +11,8 @@ try:
 except ImportError:
     try:
         import tomli as toml
-    except ImportError:
-        print("[!] 请先安装 tomli 库: pip install tomli")
-        sys.exit(1)
+    except ImportError as exc:
+        raise ImportError("请先安装 tomli 库: pip install tomli") from exc
 
 from .printWithTime import printWithTime
 
