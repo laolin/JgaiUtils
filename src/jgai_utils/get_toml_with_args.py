@@ -80,16 +80,14 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60):
         config_path = os.path.join(main_dir, config_filename)
 
         if not os.path.exists(config_path):
-            print(f"[!] ERROR! FILE NOT FOUND: {config_filename}")
-            sys.exit(1)
+            raise FileNotFoundError(f"TOML config file not found: {config_path}")
         try:
             # TOML 解析器要求必须用二进制 'rb' 模式读取
             with open(config_path, "rb") as f:
                 _merge_dict(config_dict, toml.load(f))
             printWithTime(f"Cofing [ {config_filename} ] Loaded.")
         except Exception as e:
-            print(f"[!] Read of parse TOML ERROR: {e}")
-            sys.exit(1)
+            raise RuntimeError(f"Read or parse TOML error: {config_path}") from e
 
     # ==========================================
     # 阶段 3：创建正式解析器，并动态生成参数
