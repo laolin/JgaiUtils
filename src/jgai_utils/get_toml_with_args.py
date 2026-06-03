@@ -41,7 +41,14 @@ def _merge_dict(base, extra):
             base[key] = value
     return base
 
-def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60):
+def _config_path(config_filename, base_dir):
+    if not config_filename.endswith('.toml'):
+        config_filename += '.toml'
+    if os.path.isabs(config_filename):
+        return config_filename
+    return os.path.join(base_dir, config_filename)
+
+def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=None, base_dir=None):
     """toml_file支持指定一个或多个toml文件，多个文件会合并到一个字典中。
     (1) 读 config.toml配置文件。
     (2) 对于配置中简单类型的配置值，会自动生成对应命令行参数，通过命令行参数 --key VAL 在运行时修改配置。 函数返回命令行更新后的配置。
@@ -49,10 +56,15 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60):
 
     Args:
         info (str, optional): _description_. Defaults to "".
+        argv (list[str], optional): 指定命令行参数；None 时使用 sys.argv。
+        base_dir (str, optional): 指定配置文件查找目录；None 时使用主脚本所在目录。
 
     Returns:
         dict:返回的配置值
     """
+    if argv is not None and isinstance(argv, (str, bytes, os.PathLike)):
+        raise TypeError("argv must be a sequence of arguments, not a string/path")
+
     if len(info)>0:
         print(f"[+]{f' {info} ':{bar}^{width}}[+]")
 
@@ -62,22 +74,22 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60):
     init_parser = argparse.ArgumentParser(add_help=False)
     init_parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定 TOML 配置文件名 (可省略 .toml)")
     
-    init_args, remaining_argv = init_parser.parse_known_args()
+    init_args, _ = init_parser.parse_known_args(argv)
 
     # ==========================================
     # 阶段 2：定位并读取 TOML 配置文件
     # ==========================================
     config_filenames = _normalize_toml_files(init_args.config)
 
-    main_script_path = os.path.abspath(sys.argv[0])
-    main_dir = os.path.dirname(main_script_path)    
+    if base_dir is None:
+        main_script_path = os.path.abspath(sys.argv[0])
+        base_dir = os.path.dirname(main_script_path)
+    else:
+        base_dir = os.fspath(base_dir)
+
     config_dict = {}
     for config_filename in config_filenames:
-        # 自动补全 .toml 扩展名
-        if not config_filename.endswith('.toml'):
-            config_filename += '.toml'
-
-        config_path = os.path.join(main_dir, config_filename)
+        config_path = _config_path(config_filename, base_dir)
 
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"TOML config file not found: {config_path}")
@@ -114,7 +126,7 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60):
     # 阶段 4：执行最终解析与业务逻辑
     # ==========================================
     # 此时，如果用户在终端显式指定了参数（如 --n_xspan 10），它会覆盖 TOML 里的默认值
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     cfg2=vars(args)
     cfg2.update(cfg)
 
