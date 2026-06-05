@@ -72,7 +72,7 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=Non
     # 阶段 1：临时解析器，仅用于抓取 --config
     # ==========================================
     init_parser = argparse.ArgumentParser(add_help=False)
-    init_parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定 TOML 配置文件名 (可省略 .toml)")
+    init_parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定一个或多个 TOML 配置文件 (可省略 .toml)")
     
     init_args, _ = init_parser.parse_known_args(argv)
 
@@ -106,7 +106,7 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=Non
     # ==========================================
     parser = argparse.ArgumentParser(description="JieGouAi Model")
     # 把 config 加回来，以便 -h 帮助文档中能正常显示
-    parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定 TOML 配置文件名 (可省略 .toml)")
+    parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定一个或多个 TOML 配置文件 (可省略 .toml)")
 
     cfg = {}  # 用于专门存放列表和字典
     for key, value in config_dict.items():
