@@ -41,7 +41,7 @@ class CalTime:
         if self.en:
             dy, hr, mn, sec = 'd', 'hr', 'min', 's'
         else:
-            dy, hr, mn, sec = '天', '小时', '分钟', '秒'
+            dy, hr, mn, sec = '天', '小时', '分', '秒'
 
         # 3. 如果时间很短（小于1分钟），保留小数并直接返回
         if seconds < 60:
