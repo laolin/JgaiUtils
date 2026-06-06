@@ -18,7 +18,7 @@ class CalTime:
         self.en=False
 
         
-    def use(self, en: Optional[bool] = None) -> str:
+    def use(self, en: Optional[bool] = None, reset:bool=False) -> str:
         """获取从初始化(或上次重置)到当前经过的时间时长。
         
         Args:
@@ -32,6 +32,8 @@ class CalTime:
         """
         # 1. 计算总秒数
         seconds = time.time() - self._t0
+        if reset:
+            self.reset()
 
         # 2. 处理语言状态
         if en is not None:
