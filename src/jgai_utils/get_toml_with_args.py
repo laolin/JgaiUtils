@@ -108,11 +108,28 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=Non
     # 把 config 加回来，以便 -h 帮助文档中能正常显示
     parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定一个或多个 TOML 配置文件 (可省略 .toml)")
 
-    cfg = {}  # 用于专门存放列表和字典
+    cfg = {}  # 用于专门存放字典
     for key, value in config_dict.items():
-        # 分流逻辑：如果是列表或字典，存入暂存区，跳过 argparse
-        if isinstance(value, (list, dict)):
+        # 分流逻辑：如果是字典，存入暂存区，跳过 argparse
+        if isinstance(value, dict):
             cfg[key] = value
+            continue
+
+        # 如果是列表，通过 nargs="+" 支持命令行输入多个值
+        if isinstance(value, list):
+            if len(value) > 0 and value[0] is not None:
+                elem = value[0]
+                if isinstance(elem, bool):
+                    list_type = str2bool
+                    list_type_name = "bool"
+                else:
+                    list_type = type(elem)
+                    list_type_name = list_type.__name__
+            else:
+                list_type = str
+                list_type_name = "str"
+            parser.add_argument(f"--{key}", type=list_type, nargs="+", default=list(value),
+                              help=f"[动态生成] list 类型, 元素为 {list_type_name}")
             continue
             
         # 根据 TOML 严格的类型，动态分配给 argparse
