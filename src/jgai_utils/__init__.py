@@ -7,6 +7,7 @@ from .CalTime import CalTime
 from .clipped_normal import clipped_normal
 from .generate_unique_id import generate_unique_id, generate_machine_id
 from .get_toml_with_args import get_toml_with_args
+from .load_config import load_config
 from .printWithTime import printWithTime
 from .rint_by_seeds import rint_by_seeds
 from .str_by_ints import str_by_ints
