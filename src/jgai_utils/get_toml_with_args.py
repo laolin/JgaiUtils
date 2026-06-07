@@ -1,6 +1,7 @@
 #Copyright (c) 2026 laolin. See LICENSE for details.
 import os
 import sys
+import json
 import argparse
 from collections.abc import Sequence
 
@@ -48,14 +49,17 @@ def _config_path(config_filename, base_dir):
         return config_filename
     return os.path.join(base_dir, config_filename)
 
-def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=None, base_dir=None):
-    """toml_file支持指定一个或多个toml文件，多个文件会合并到一个字典中。
-    (1) 读 config.toml配置文件。
-    (2) 对于配置中简单类型的配置值，会自动生成对应命令行参数，通过命令行参数 --key VAL 在运行时修改配置。 函数返回命令行更新后的配置。
-    (3) 默认配置文件名为 和 .py 同目录下config.toml。 可以通过 --config test 指定别的toml配置文件。
+def get_toml_with_args(info:str="", toml_file="config", json_file=None, bar="-", width=60, argv=None, base_dir=None):
+    """toml_file支持指定一个或多个toml文件，多个文件会合并到一个字典中。 json_file为可选的JSON配置文件。
+    (1) 读 config.toml 配置文件，如果指定了 json_file 也会读取 JSON 文件。
+    (2) 配置优先级：命令行参数 > JSON 文件值 > TOML 文件值。
+    (3) 对于配置中简单类型的配置值，会自动生成对应命令行参数，通过命令行参数 --key VAL 在运行时修改配置。
+    (4) 默认配置文件名为 和 .py 同目录下config.toml。 可以通过 --config test 指定别的toml配置文件。
 
     Args:
-        info (str, optional): _description_. Defaults to "".
+        info (str, optional): 打印的标题信息。Defaults to "".
+        toml_file (str|list, optional): TOML 配置文件路径。Defaults to "config".
+        json_file (str, optional): JSON 配置文件路径，None 表示不读取。Defaults to None.
         argv (list[str], optional): 指定命令行参数；None 时使用 sys.argv。
         base_dir (str, optional): 指定配置文件查找目录；None 时使用主脚本所在目录。
 
@@ -69,10 +73,11 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=Non
         print(f"[+]{f' {info} ':{bar}^{width}}[+]")
 
     # ==========================================
-    # 阶段 1：临时解析器，仅用于抓取 --config
+    # 阶段 1：临时解析器，仅用于抓取 --config 和 --json_file
     # ==========================================
     init_parser = argparse.ArgumentParser(add_help=False)
     init_parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定一个或多个 TOML 配置文件 (可省略 .toml)")
+    init_parser.add_argument("--json_file", type=str, default=json_file, help="指定 JSON 配置文件 (可省略 .json)")
     
     init_args, _ = init_parser.parse_known_args(argv)
 
@@ -102,11 +107,34 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=Non
             raise RuntimeError(f"Read or parse TOML error: {config_path}") from e
 
     # ==========================================
+    # 阶段 2.5：若指定 json_file，读取 JSON 并合并（覆盖同名 TOML 值）
+    # ==========================================
+    if init_args.json_file is not None:
+        json_filename = os.fspath(init_args.json_file)
+        if not json_filename.endswith('.json'):
+            json_filename += '.json'
+        if not os.path.isabs(json_filename):
+            json_path = os.path.join(base_dir, json_filename)
+        else:
+            json_path = json_filename
+
+        if not os.path.exists(json_path):
+            raise FileNotFoundError(f"JSON config file not found: {json_path}")
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+            _merge_dict(config_dict, json_data)
+            printWithTime(f"Config [ {json_filename} ] Loaded.")
+        except Exception as e:
+            raise RuntimeError(f"Read or parse JSON error: {json_path}") from e
+
+    # ==========================================
     # 阶段 3：创建正式解析器，并动态生成参数
     # ==========================================
     parser = argparse.ArgumentParser(description="JieGouAi Model")
-    # 把 config 加回来，以便 -h 帮助文档中能正常显示
+    # 把 config / json_file 加回来，以便 -h 帮助文档中能正常显示
     parser.add_argument("--config", type=str, nargs="+", default=toml_file, help="指定一个或多个 TOML 配置文件 (可省略 .toml)")
+    parser.add_argument("--json_file", type=str, default=json_file, help="指定 JSON 配置文件 (可省略 .json)")
 
     cfg = {}  # 用于专门存放字典
     for key, value in config_dict.items():
@@ -147,9 +175,10 @@ def get_toml_with_args(info:str="",toml_file="config",bar="-",width=60, argv=Non
     cfg2=vars(args)
     cfg2.update(cfg)
 
-    # 移除不需要传入核心运算逻辑的 config 字段
-    if 'config' in cfg2:
-        del cfg2['config']
+    # 移除不需要传入核心运算逻辑的 config / json_file 字段
+    for key in ('config', 'json_file'):
+        if key in cfg2:
+            del cfg2[key]
 
     return cfg2
 
